@@ -1,10 +1,14 @@
 import re
+import threading
 
 import requests
 from bs4 import BeautifulSoup
 
+
 DOMAIN = "https://django-anuncios.solyd.com.br"
 URL_AUTO = "https://django-anuncios.solyd.com.br/automoveis/"
+LINKS = []
+TELEFONES = []
 
 
 def buscar(url):
@@ -57,15 +61,42 @@ def encontrar_telefone(soup):
         return regex
 
 
-resposta_busca = buscar(URL_AUTO)
-if resposta_busca:
-    soup_busca = parsing(resposta_busca)
-    if soup_busca:
-        links = encontrar_links(soup_busca)
-        for link in links:
-            resposta_anuncio = buscar(DOMAIN + link)
-            if resposta_anuncio:
-                soup_anuncio = parsing(resposta_anuncio)
-                if soup_anuncio:
-                    telefones = encontrar_telefone(soup_anuncio)
-                    print(telefones)
+def descobrir_telefone():
+    while len(LINKS) != 0:
+        link_anuncio = LINKS.pop(0)
+
+        resposta_anuncio = buscar(DOMAIN + link_anuncio)
+
+        if resposta_anuncio:
+            soup_anuncio = parsing(resposta_anuncio)
+            if soup_anuncio:
+                telefones = encontrar_telefone(soup_anuncio)
+                if telefones:
+                    for telefone in telefones:
+                        print("Telefone encontrado:", telefone)
+                        TELEFONES.append(telefone)
+
+
+if __name__ == "__main__":
+    resposta_busca = buscar(DOMAIN)
+    if resposta_busca:
+        soup_busca = parsing(resposta_busca)
+        if soup_busca:
+            LINKS = encontrar_links(soup_busca)
+
+            thread_1 = threading.Thread(target=descobrir_telefone)
+            thread_2 = threading.Thread(target=descobrir_telefone)
+            thread_3 = threading.Thread(target=descobrir_telefone)
+
+            thread_1.start()
+            thread_2.start()
+            thread_3.start()
+
+            thread_1.join()
+            thread_2.join()
+            thread_3.join()
+
+            print(TELEFONES)
+
+
+
